@@ -1,0 +1,216 @@
+package cn.iocoder.yudao.module.campus.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
+import cn.iocoder.yudao.framework.mybatis.core.query.QueryWrapperX;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentPageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentTempRecordRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.*;
+import cn.iocoder.yudao.module.campus.convert.StudentConvert;
+import cn.iocoder.yudao.module.campus.convert.TempRecordConvert;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentDO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.TempRecordDO;
+import cn.iocoder.yudao.module.campus.dal.mysql.TempRecordMapper;
+import cn.iocoder.yudao.module.campus.service.StudentService;
+import cn.iocoder.yudao.module.campus.service.TempRecordService;
+import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
+import cn.iocoder.yudao.module.system.service.dept.DeptService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserDeptId;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/6/17
+ */
+@Service
+@Slf4j
+public class TempRecordServiceImpl implements TempRecordService {
+
+    @Resource
+    private TempRecordMapper tempRecordMapper;
+
+    @Resource
+    private StudentService studentService;
+
+    @Resource
+    private DeptService deptService;
+
+    @Override
+    public PageResult<TempRecordDO> getTempRecordPage(TempRecordPageReqVO reqVO) {
+        List<Long> studentIds = studentService.getStudentIdsByCondition(convertConditionToStudentPageReqVO(reqVO));
+        if (CollUtil.isEmpty(studentIds)) {
+            return null;
+        }
+        return tempRecordMapper.selectPage(reqVO, studentIds);
+    }
+
+    private StudentPageReqVO convertConditionToStudentPageReqVO(TempRecordPageReqVO reqVO) {
+        StudentPageReqVO studentPageReqVO = new StudentPageReqVO();
+        studentPageReqVO.setDeptId(reqVO.getDeptId());
+        studentPageReqVO.setSex(reqVO.getSex());
+        studentPageReqVO.setStudentNo(reqVO.getStudentNo());
+        studentPageReqVO.setStudentName(reqVO.getStudentName());
+
+        return studentPageReqVO;
+    }
+
+    @Override
+    public StudentTempRecordRespVO getTempRecordByStudentIdAndDate(Long studentId, Date time) {
+        //sql操作，查询到原始数据
+        StudentDO student = studentService.selectById(studentId);
+        List<TempRecordDO> tempRecords = tempRecordMapper.selectTempRecords(studentId, time);
+
+        StudentTempRecordRespVO respVO = StudentConvert.INSTANCE.convert(student);
+        respVO.setTempRecords(TempRecordConvert.INSTANCE.convert(tempRecords));
+        respVO.setRecordCreateTime(time);
+
+        return respVO;
+    }
+
+    @Override
+    public void deleteTempRecordsByStudentId(Long id) {
+        List<TempRecordDO> tempRecords = tempRecordMapper.selectList(TempRecordDO::getStudentId, id);
+        if (CollUtil.isEmpty(tempRecords)) {
+            return;
+        }
+        List<Long> ids = tempRecords.stream().map(TempRecordDO::getId).collect(Collectors.toList());
+        tempRecordMapper.deleteBatchIds(ids);
+
+    }
+
+    @Override
+    public TempRecordRespVO convertByDO(TempRecordDO recordDO, StudentDO studentDO) {
+        TempRecordRespVO respVO = TempRecordConvert.INSTANCE.convert(recordDO);
+        respVO.setTemperature(recordDO.getTemperature());
+        respVO.setDeptId(studentDO.getDeptId());
+        respVO.setStudentId(studentDO.getId());
+        respVO.setStudentName(studentDO.getName());
+        respVO.setStudentNo(studentDO.getStudentNo());
+        respVO.setSex(studentDO.getSex());
+        return respVO;
+    }
+
+    @Override
+    public List<TempRecordDO> getTodayTempRecordsByStudentIdsAndDate(List<Long> studentIds) {
+        return tempRecordMapper.selectStudentTempPage(studentIds);
+    }
+
+    @Override
+    public TempChartRespVO getTempChart(Date createTime) {
+        TempChartRespVO tempChartRespVO = new TempChartRespVO();
+        List<StudentDO> stuDoList = studentService.list();
+        List<DeptDO> gradeList = deptService.getDeptsByParentIdFromCache(getLoginUserDeptId(), false);
+        List<String> gradeNameTitle = new ArrayList<String>();
+        if (CollUtil.isNotEmpty(gradeList)) {
+            for (int i = 0; i < gradeList.size(); i++) {
+                gradeNameTitle.add(gradeList.get(i).getName());
+            }
+        }
+
+        //全校测温饼状图数据
+        List<TempPieChartVO> allTempList = new ArrayList<>();
+        String[] tempChartTitle = {"正常", "发烧", "未测量"};
+        int[] tempChartNum = new int[3];
+
+        //各个年级体温异常饼状图数据
+        List<TempPieChartVO> tempUnusualList = new ArrayList<>();
+        int[] tempUnusualNum = new int[gradeList.size()];
+
+        //各个年级体温情况柱状图数据
+        int[] tempNormal = new int[gradeList.size()];
+        int[] tempFever = new int[gradeList.size()];
+        int[] tempNull = new int[gradeList.size()];
+
+        if (CollUtil.isNotEmpty(stuDoList)) {
+            tempChartRespVO.setStuTotal(stuDoList.size());
+
+            //获取学生班级、年级
+            Collection<Long> classDeptIds = CollectionUtils.convertList(stuDoList, StudentDO::getDeptId);
+            List<DeptDO> classDepts = deptService.getDepts(classDeptIds);
+            Map<Long, DeptDO> classDeptMap = CollectionUtils.convertMap(classDepts, DeptDO::getId);
+            Collection<Long> gradeDeptIds = CollectionUtils.convertList(classDepts, DeptDO::getParentId);
+            List<DeptDO> gradeDepts = deptService.getDepts(gradeDeptIds);
+            Map<Long, DeptDO> gradeDeptMap = CollectionUtils.convertMap(gradeDepts, DeptDO::getId);
+
+            for (StudentDO studentDO : stuDoList) {
+                // 全校测温饼状图
+                List<TempRecordDO> tempRecordList = tempRecordMapper.selectTempRecords(studentDO.getId(), createTime);
+                String gradeName = gradeDeptMap.get(classDeptMap.get(studentDO.getDeptId()).getParentId()).getName();
+                if (CollUtil.isEmpty(tempRecordList)) {
+                    tempChartNum[2] += 1;
+                    if (gradeNameTitle.indexOf(gradeName) != -1) {
+                        tempNull[gradeNameTitle.indexOf(gradeName)] += 1;
+                    }
+                } else {
+                    if (tempRecordList.get(0).getTemperature() >= 37) {
+                        tempChartNum[1] += 1;
+                        if (gradeNameTitle.indexOf(gradeName) != -1) {
+                            tempUnusualNum[gradeNameTitle.indexOf(gradeName)] += 1;
+                            tempFever[gradeNameTitle.indexOf(gradeName)] += 1;
+                        }
+                    } else {
+                        tempChartNum[0] += 1;
+                        if (gradeNameTitle.indexOf(gradeName) != -1) {
+                            tempNormal[gradeNameTitle.indexOf(gradeName)] += 1;
+                        }
+                    }
+                }
+            }
+            //封装全校测温饼状图数据
+            for (int i = 0; i < tempChartTitle.length; i++) {
+                TempPieChartVO tempPieChartVO = new TempPieChartVO();
+                tempPieChartVO.setName(tempChartTitle[i]);
+                tempPieChartVO.setValue(tempChartNum[i]);
+                allTempList.add(tempPieChartVO);
+            }
+            //各个年级体温异常饼状图数据
+            for (int i = 0; i < gradeNameTitle.size(); i++) {
+                TempPieChartVO tempPieChartVO = new TempPieChartVO();
+                tempPieChartVO.setName(gradeNameTitle.get(i));
+                tempPieChartVO.setValue(tempUnusualNum[i]);
+                tempUnusualList.add(tempPieChartVO);
+            }
+            //各个年级体温情况柱状图数据
+            List<List<Integer>> gradeTempList = new ArrayList<List<Integer>>();
+            gradeTempList.add(Arrays.stream(tempNormal).boxed().collect(Collectors.toList()));
+            gradeTempList.add(Arrays.stream(tempFever).boxed().collect(Collectors.toList()));
+            gradeTempList.add(Arrays.stream(tempNull).boxed().collect(Collectors.toList()));
+
+            tempChartRespVO.setAllTempData(allTempList);
+            tempChartRespVO.setTempUnusualData(tempUnusualList);
+            tempChartRespVO.setGradeNameList(gradeNameTitle);
+            tempChartRespVO.setGradeTempList(gradeTempList);
+
+        }
+        return tempChartRespVO;
+    }
+
+
+    @Override
+    public List<TempRecordPreviewRespVO> getGradeTempRecordPreviewList(List<Long> deptIds, TempRecordPreviewReqVO reqVO) {
+        QueryWrapperX queryWrapper = new QueryWrapperX();
+        queryWrapper.inIfPresent("dept.id", deptIds)
+                .apply("date_format(record.create_time, '%Y-%m-%d') = '" + DateUtil.format(reqVO.getDate(), "yyyy-MM-dd") + "'");
+        queryWrapper.groupBy("dept.parent_id");
+        return tempRecordMapper.selectGradePreview(queryWrapper);
+    }
+
+    @Override
+    public List<TempRecordPreviewRespVO> getClassTempRecordPreviewList(List<Long> deptIds, TempRecordPreviewReqVO reqVO) {
+        QueryWrapperX queryWrapper = new QueryWrapperX();
+        queryWrapper.inIfPresent("dept.id", deptIds)
+                .apply("date_format(record.create_time, '%Y-%m-%d') = '" + DateUtil.format(reqVO.getDate(), "yyyy-MM-dd") + "'");
+        queryWrapper.groupBy("dept.id");
+        return tempRecordMapper.selectClassPreview(queryWrapper);
+    }
+}

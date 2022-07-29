@@ -1,0 +1,79 @@
+package cn.iocoder.yudao.module.campus.controller.admin;
+
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+
+/**
+ * @program: 智慧校园
+ * @description: 智慧校园-- 教育局视角请求入口
+ * @author: pengzhenlong
+ * @date: 2022/7/4
+ */
+@Api(tags = "智慧校园 - 教育局视角")
+@RestController
+@RequestMapping("/smart-campus/educate")
+@Validated
+public class BureauController {
+
+    @ApiOperation("学校情况预览")
+    @GetMapping("/school-preview")
+    public CommonResult getSchoolPreview() {
+        return success("学校情况预览 -- 待开发");
+    }
+
+    @ApiOperation("获得测温统计列表")
+    @GetMapping("/temp-record/page")
+    public CommonResult TempRecordsPage() {
+        return success("获得测温统计列表 -- 待开发");
+    }
+
+    @ApiOperation("获得密接人员分页列表")
+    @GetMapping("/close-preview/page")
+    public CommonResult closeContactsPage() {
+        return success("密接人员分页列表 -- 待开发");
+    }
+
+    @ApiOperation("获得检查记录分页列表")
+    @GetMapping("/check-record/page")
+    public CommonResult checkRecordsPage() {
+        return success("检查记录分页列表 -- 待开发");
+    }
+
+    @ApiOperation("新增检查记录")
+    @PostMapping("/check-record/create")
+    public CommonResult createCheckRecord() {
+        return success("新增检查记录 -- 待开发");
+    }
+
+
+    @ApiOperation("获得防疫物资分页列表")
+    @GetMapping("/material/page")
+    public CommonResult materialPage() {
+        return success("防疫物资分页列表 -- 待开发");
+    }
+
+    @ApiOperation("新增防疫物资")
+    @PutMapping("/material/create")
+    public CommonResult createMaterial() {
+        return success("新增防疫物资记录 -- 待开发");
+    }
+
+    @ApiOperation("更新防疫物资")
+    @PutMapping("/material/update")
+    public CommonResult updateMaterial() {
+        return success("防疫物资分页列表 -- 待开发");
+    }
+
+    @ApiOperation("获取防疫物资详情")
+    @PutMapping("/material/get")
+    public CommonResult getMaterial() {
+        return success("获取防疫物资详情 -- 待开发");
+    }
+
+
+}

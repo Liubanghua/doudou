@@ -1,0 +1,11 @@
+cn\iocoder\yudao\module\infra\service\DefaultDatabaseQueryTest.class
+cn\iocoder\yudao\module\infra\service\file\FileServiceTest.class
+cn\iocoder\yudao\module\infra\service\file\FileConfigServiceImplTest$EmptyFileClientConfig.class
+cn\iocoder\yudao\module\infra\service\logger\ApiErrorLogServiceImplTest.class
+cn\iocoder\yudao\module\infra\service\logger\ApiAccessLogServiceImplTest.class
+cn\iocoder\yudao\module\infra\service\db\DataSourceConfigServiceImplTest.class
+cn\iocoder\yudao\module\infra\service\config\ConfigServiceTest.class
+cn\iocoder\yudao\module\infra\service\job\JobServiceTest.class
+cn\iocoder\yudao\module\infra\service\job\JobLogServiceTest.class
+cn\iocoder\yudao\module\infra\service\test\TestDemoServiceImplTest.class
+cn\iocoder\yudao\module\infra\service\file\FileConfigServiceImplTest.class

@@ -1,0 +1,35 @@
+package cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.*;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import javax.validation.constraints.NotNull;
+import java.util.Date;
+
+import static cn.iocoder.yudao.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY;
+import static cn.iocoder.yudao.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/7/13
+ */
+@ApiModel("智慧校园 - 预览测温记录的 Request VO")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TempRecordPreviewReqVO {
+
+    @ApiModelProperty(value = "学校ID", example = "101")
+    private Long schoolId;
+
+    @ApiModelProperty(value = "部门ID", example = "101")
+    private Long deptId;
+
+    @ApiModelProperty(value = "测温时间", example = "2022-06-17")
+    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY)
+    private Date date;
+}

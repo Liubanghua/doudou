@@ -1,0 +1,23 @@
+package cn.iocoder.yudao.module.campus.convert;
+
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordSimpleRespVO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.TempRecordDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+import java.util.List;
+
+@Mapper
+public interface TempRecordConvert {
+
+    TempRecordConvert INSTANCE = Mappers.getMapper(TempRecordConvert.class);
+
+    List<TempRecordRespVO> convertList(List<TempRecordDO> list);
+
+    TempRecordRespVO convert(TempRecordDO recordDO);
+
+    List<TempRecordSimpleRespVO> convert(List<TempRecordDO> records);
+
+
+}

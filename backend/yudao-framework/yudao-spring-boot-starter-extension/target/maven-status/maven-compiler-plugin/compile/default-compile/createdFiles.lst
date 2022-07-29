@@ -1,0 +1,12 @@
+cn\iocoder\yudao\framework\extension\core\context\ExtensionContextHolder.class
+cn\iocoder\yudao\framework\extension\core\point\ExtensionPoint.class
+cn\iocoder\yudao\framework\extension\config\YudaoExtensionAutoConfiguration.class
+cn\iocoder\yudao\framework\extension\core\stereotype\Extension.class
+cn\iocoder\yudao\framework\extension\core\ExtensionBootstrap.class
+cn\iocoder\yudao\framework\extension\core\context\ExtensionContext.class
+cn\iocoder\yudao\framework\extension\core\factory\ExtensionDefinition.class
+cn\iocoder\yudao\framework\extension\core\BusinessScenario.class
+cn\iocoder\yudao\framework\extension\core\context\ExtensionExecutor.class
+cn\iocoder\yudao\framework\extension\core\context\AbstractComponentExecutor.class
+cn\iocoder\yudao\framework\extension\core\factory\ExtensionRegisterFactory.class
+cn\iocoder\yudao\framework\extension\core\factory\ExtensionFactory.class

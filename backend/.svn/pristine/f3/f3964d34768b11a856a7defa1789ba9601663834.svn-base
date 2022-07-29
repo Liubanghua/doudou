@@ -1,0 +1,67 @@
+package cn.iocoder.yudao.module.campus.convert;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.*;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentDO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.TempRecordDO;
+import cn.iocoder.yudao.module.campus.enums.TempTypeEnum;
+import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
+import com.alibaba.excel.util.CollectionUtils;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+import java.util.List;
+import java.util.Map;
+
+@Mapper
+public interface StudentConvert {
+
+    StudentConvert INSTANCE = Mappers.getMapper(StudentConvert.class);
+
+    List<StudentRespVO> convertDO2RespVO(List<StudentDO> list);
+
+    StudentDO convert(StudentCreateReqVO reqVO);
+
+    StudentTempRecordRespVO convert(StudentDO studentDO);
+
+    StudentRespVO convertDo(StudentDO studentDO);
+
+    StudentDO convertUpdate(StudentUpdateReqVO reqVO);
+
+    StudentDO convert(StudentExcelVo bean);
+
+    List<StudentTempPreviewRespVO> convertDO2TempRespVO(List<StudentDO> list);
+
+    default List<StudentTempPreviewRespVO> convert(List<StudentDO> studentDOs, Map<Long, List<TempRecordDO>> studentTempRecordsMap, Map<Long, DeptDO> deptMap) {
+        List<StudentTempPreviewRespVO> results = convertDO2TempRespVO(studentDOs);
+        if (results.size() > 0) {
+            for (StudentTempPreviewRespVO vo : results) {
+                Long deptId = vo.getDeptId();
+
+                if(CollUtil.isNotEmpty(deptMap)){
+                    vo.setCampusClassName(deptMap.get(deptId).getName());
+                    vo.setCampusGradeName(deptMap.get(deptMap.get(deptId).getParentId()).getName());
+                }
+
+                List<TempRecordDO> tempRecords = studentTempRecordsMap.get(vo.getId());
+                if (CollectionUtils.isEmpty(tempRecords)) {
+                    vo.setTempType(TempTypeEnum.ABNORMAL.getType());
+                } else {
+                    for (TempRecordDO tempRecord : tempRecords) {
+                        if (tempRecord.getTemperature() > 37.5) {
+                            vo.setTempType(TempTypeEnum.FEVER.getType());
+                        }
+                    }
+                }
+
+                if (vo.getTempType() == null) {
+                    vo.setTempType(TempTypeEnum.NORMAL.getType());
+                }
+            }
+            return results;
+        }
+
+        return null;
+    }
+
+}

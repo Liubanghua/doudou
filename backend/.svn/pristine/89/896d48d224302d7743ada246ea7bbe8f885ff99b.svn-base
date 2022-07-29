@@ -1,0 +1,21 @@
+package cn.iocoder.yudao.module.campus.controller.admin.vo.grade;
+
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+/**
+ * @program: 智慧校园
+ * @description: 年级 Base VO
+ * @author: pengzhenlong
+ * @date: 2022/6/22
+ */
+@Data
+public class GradeBaseVO {
+
+    @ApiModelProperty(value = "年级名", example = "一年级", required = true)
+    private String gradeName;
+
+    @ApiModelProperty(value = "年级人数", example = "156", required = true)
+    private String gradeStudentNums;
+
+}

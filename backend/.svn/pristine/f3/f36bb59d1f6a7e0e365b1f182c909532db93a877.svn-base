@@ -1,0 +1,71 @@
+package cn.iocoder.yudao.module.campus.convert;
+
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordPreviewRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordSimpleRespVO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.TempRecordDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Mapper
+public interface TempRecordConvert {
+
+    TempRecordConvert INSTANCE = Mappers.getMapper(TempRecordConvert.class);
+
+    List<TempRecordRespVO> convertList(List<TempRecordDO> list);
+
+    TempRecordRespVO convert(TempRecordDO recordDO);
+
+    List<TempRecordSimpleRespVO> convert(List<TempRecordDO> records);
+
+    default List<TempRecordPreviewRespVO> convertGrade(List<TempRecordPreviewRespVO> vos, Map<Long, DeptDO> deptMap) {
+        List<TempRecordPreviewRespVO> respVOS = new ArrayList<>();
+        Map<Long, TempRecordPreviewRespVO> vosMap = vos.stream().collect(Collectors.toMap(TempRecordPreviewRespVO::getDeptId, resp -> resp));
+        for (Map.Entry<Long, DeptDO> entry : deptMap.entrySet()) {
+            TempRecordPreviewRespVO vo = vosMap.get(entry.getKey());
+            if (vo == null) {
+                vo = new TempRecordPreviewRespVO();
+                vo.setDeptId(entry.getKey());
+                vo.setTotal(0);
+                vo.setFever(0);
+                vo.setNormal(0);
+                vo.setAbnormal(0);
+                vo.setUnmeasured(0);
+            }
+            vo.setCampusGradeName(entry.getValue().getName());
+            respVOS.add(vo);
+        }
+        return respVOS;
+    }
+
+    default List<TempRecordPreviewRespVO> convertClass(List<TempRecordPreviewRespVO> vos, Map<Long, DeptDO> classDeptMap, Map<Long, DeptDO> gradeDeptMap) {
+        List<TempRecordPreviewRespVO> respVOS = new ArrayList<>();
+        Map<Long, TempRecordPreviewRespVO> vosMap = vos.stream().collect(Collectors.toMap(TempRecordPreviewRespVO::getDeptId, resp -> resp));
+        for (Map.Entry<Long, DeptDO> entry : classDeptMap.entrySet()) {
+            TempRecordPreviewRespVO vo = vosMap.get(entry.getKey());
+            if (vo == null) {
+                vo = new TempRecordPreviewRespVO();
+                vo.setDeptId(entry.getKey());
+                vo.setTotal(0);
+                vo.setFever(0);
+                vo.setNormal(0);
+                vo.setAbnormal(0);
+                vo.setUnmeasured(0);
+            }
+            vo.setCampusClassName(entry.getValue().getName());
+            vo.setCampusGradeName(gradeDeptMap.get(entry.getValue().getParentId()).getName());
+            respVOS.add(vo);
+        }
+        respVOS.sort(Comparator.comparing(TempRecordPreviewRespVO::getDeptId));
+        return respVOS;
+    }
+
+
+}

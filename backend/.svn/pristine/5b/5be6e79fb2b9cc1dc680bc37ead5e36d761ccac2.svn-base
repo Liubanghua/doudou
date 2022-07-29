@@ -1,0 +1,73 @@
+package cn.iocoder.yudao.module.campus.dal.mysql;
+
+import cn.hutool.core.date.DateUtil;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordPageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.TempRecordPreviewRespVO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.TempRecordDO;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/6/16
+ */
+@Mapper
+public interface TempRecordMapper extends BaseMapperX<TempRecordDO> {
+
+    default PageResult<TempRecordDO> selectPage(TempRecordPageReqVO reqVO, Collection<Long> studentIds) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<TempRecordDO>()
+                .inIfPresent(TempRecordDO::getStudentId, studentIds)
+                .eqIfPresent(TempRecordDO::getCreateTime, reqVO.getCreateTime())
+                .orderByDesc(TempRecordDO::getCreateTime));
+    }
+
+    /**
+     * student 和 temp_record 两张表的联合查询
+     *
+     * @param studentIds
+     * @return
+     */
+    default List<TempRecordDO> selectStudentTempPage(List<Long> studentIds) {
+        LambdaQueryWrapperX<TempRecordDO> queryWrapper = new LambdaQueryWrapperX<TempRecordDO>();
+        queryWrapper.inIfPresent(TempRecordDO::getStudentId, studentIds)
+                .apply("date_format(create_time, '%Y-%m-%d') = '" + DateUtil.format(new Date(), "yyyy-MM-dd") + "'");
+        return selectList(queryWrapper);
+    }
+
+    default List<TempRecordDO> selectTempRecords(Long studentId, Date time) {
+        LambdaQueryWrapperX<TempRecordDO> queryWrapper = new LambdaQueryWrapperX<TempRecordDO>();
+        queryWrapper.eqIfPresent(TempRecordDO::getStudentId, studentId);
+        queryWrapper.apply("date_format(create_time, '%Y-%m-%d') = '" + DateUtil.format(time, "yyyy-MM-dd") + "'");
+        return selectList(queryWrapper);
+    }
+
+    @Select("select dept.parent_id as dept_id, count(dept.parent_id) as total, \n" +
+            "SUM(if(record.temperature >= 37.5, 1, 0))as fever, \n" +
+            "SUM(if(record.temperature <=35, 1, 0)) as abnormal, \n" +
+            "SUM(if(record.temperature < 37.5,if(record.temperature > 35, 1, 0),0)) as normal\n" +
+            " from campus_temp_record record\n" +
+            " inner join campus_student student on record.student_id = student.id\n" +
+            " inner join system_dept dept on student.dept_id = dept.id ${ew.customSqlSegment}")
+    List<TempRecordPreviewRespVO> selectGradePreview(@Param("ew") Wrapper wrapper);
+
+    @Select("select dept.id as dept_id , count(dept.id) as total, \n" +
+            "SUM(if(record.temperature >= 37.5, 1, 0))as fever, \n" +
+            "SUM(if(record.temperature <=35, 1, 0)) as abnormal, \n" +
+            "SUM(if(record.temperature < 37.5,if(record.temperature > 35, 1, 0),0)) as normal\n" +
+            " from campus_temp_record record\n" +
+            " inner join campus_student student on record.student_id = student.id\n" +
+            " inner join system_dept dept on student.dept_id = dept.id ${ew.customSqlSegment}")
+    List<TempRecordPreviewRespVO> selectClassPreview(@Param("ew") Wrapper wrapper);
+
+}

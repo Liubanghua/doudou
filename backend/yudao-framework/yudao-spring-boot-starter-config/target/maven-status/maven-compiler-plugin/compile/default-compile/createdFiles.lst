@@ -1,0 +1,9 @@
+cn\iocoder\yudao\framework\apollo\core\ConfigConsts.class
+cn\iocoder\yudao\framework\apollo\spring\boot\ApolloApplicationContextInitializer.class
+cn\iocoder\yudao\framework\apollo\internals\DBConfigRepository.class
+cn\iocoder\yudao\framework\apollo\internals\DefaultXInjector$1.class
+cn\iocoder\yudao\framework\apollo\internals\DefaultXInjector$ApolloModule.class
+cn\iocoder\yudao\framework\apollo\internals\ConfigFrameworkDAO.class
+cn\iocoder\yudao\framework\apollo\internals\DefaultXInjector.class
+cn\iocoder\yudao\framework\apollo\spi\DBConfigFactory.class
+cn\iocoder\yudao\framework\apollo\internals\dto\ConfigRespDTO.class

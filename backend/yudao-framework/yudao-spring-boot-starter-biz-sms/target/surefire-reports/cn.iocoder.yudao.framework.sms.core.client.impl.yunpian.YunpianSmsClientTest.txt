@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: cn.iocoder.yudao.framework.sms.core.client.impl.yunpian.YunpianSmsClientTest
+-------------------------------------------------------------------------------
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.221 s - in cn.iocoder.yudao.framework.sms.core.client.impl.yunpian.YunpianSmsClientTest

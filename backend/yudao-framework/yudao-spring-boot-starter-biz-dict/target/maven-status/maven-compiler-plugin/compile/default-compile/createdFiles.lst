@@ -1,0 +1,4 @@
+cn\iocoder\yudao\framework\dict\core\service\DictDataFrameworkService.class
+cn\iocoder\yudao\framework\dict\core\dto\DictDataRespDTO.class
+cn\iocoder\yudao\framework\dict\config\YudaoDictAutoConfiguration.class
+cn\iocoder\yudao\framework\dict\core\util\DictFrameworkUtils.class

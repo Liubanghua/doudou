@@ -1,0 +1,28 @@
+package cn.iocoder.yudao.module.campus.convert;
+
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentCreateReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentTempRecordRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentUpdateReqVO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+import java.util.List;
+
+@Mapper
+public interface StudentConvert {
+
+    StudentConvert INSTANCE = Mappers.getMapper(StudentConvert.class);
+
+    List<StudentRespVO> convertDO2RespVO(List<StudentDO> list);
+
+    StudentDO convert(StudentCreateReqVO reqVO);
+
+    StudentTempRecordRespVO convert(StudentDO studentDO);
+
+    StudentRespVO convertDo(StudentDO studentDO);
+
+    StudentDO convertUpdate(StudentUpdateReqVO reqVO);
+
+}

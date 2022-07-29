@@ -1,0 +1,7 @@
+cn\iocoder\yudao\framework\extension\pay\impl\WechatPayService.class
+cn\iocoder\yudao\framework\extension\pay\impl\AlipayService.class
+cn\iocoder\yudao\framework\extension\Application.class
+cn\iocoder\yudao\framework\extension\ExtensionTest.class
+cn\iocoder\yudao\framework\extension\pay\domain\TransactionsResult.class
+cn\iocoder\yudao\framework\extension\pay\PayExtensionPoint.class
+cn\iocoder\yudao\framework\extension\pay\command\TransactionsCommand.class

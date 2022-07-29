@@ -1,0 +1,73 @@
+package cn.iocoder.yudao.module.campus.service.impl;
+
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialCreateReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialPageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialUpdateReqVO;
+import cn.iocoder.yudao.module.campus.convert.MaterialConvert;
+import cn.iocoder.yudao.module.campus.dal.dataobject.MaterialDO;
+import cn.iocoder.yudao.module.campus.dal.mysql.MaterialMapper;
+import cn.iocoder.yudao.module.campus.service.MaterialService;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.MATERIAL_EXISTSED;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.MATERIAL_NOT_EXISTSED;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/7/6
+ */
+@Service
+@Slf4j
+public class MaterialServiceImpl implements MaterialService {
+
+    @Resource
+    private MaterialMapper materialMapper;
+
+
+    @Override
+    public PageResult<MaterialDO> getMaterialPage(MaterialPageReqVO reqVO) {
+        return materialMapper.selectPage(reqVO, new QueryWrapper<>());
+    }
+
+    @Override
+    public Long createMaterial(Long deptId, MaterialCreateReqVO reqVO) {
+        checkMaterialUnique(reqVO.getName(), deptId);
+
+        MaterialDO materialDO = MaterialConvert.INSTANCE.convert(reqVO);
+        materialDO.setDeptId(deptId);
+
+        materialMapper.insert(materialDO);
+        return materialDO.getId();
+    }
+
+    /**
+     * 校验是否已存在此物资的记录
+     *
+     * @param name
+     * @param deptId
+     */
+    private void checkMaterialUnique(String name, Long deptId) {
+        MaterialDO materialDO = materialMapper.selectByNameAndDeptId(name, deptId);
+        if (materialDO != null) {
+            throw exception(MATERIAL_EXISTSED);
+        }
+        return;
+    }
+
+    @Override
+    public void updateMaterial(MaterialUpdateReqVO reqVO) {
+        if (materialMapper.selectById(reqVO.getId()) == null) {
+            throw exception(MATERIAL_NOT_EXISTSED);
+        }
+        MaterialDO materialDO = MaterialConvert.INSTANCE.convert(reqVO);
+        materialMapper.updateById(materialDO);
+    }
+}

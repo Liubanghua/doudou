@@ -1,0 +1,16 @@
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\config\YudaoDataPermissionAutoConfiguration.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\dept\package-info.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\package-info.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\config\YudaoDeptDataPermissionAutoConfiguration.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\aop\DataPermissionAnnotationInterceptor.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\dept\rule\DeptDataPermissionRule.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\aop\DataPermissionContextHolder.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\rule\DataPermissionRuleFactory.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\rule\DataPermissionRule.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\annotation\DataPermission.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\dept\service\dto\DeptDataPermissionRespDTO.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\dept\service\DeptDataPermissionFrameworkService.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\aop\DataPermissionAnnotationAdvisor.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\rule\DataPermissionRuleFactoryImpl.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\dept\rule\DeptDataPermissionRuleCustomizer.java
+C:\lbh\project\school\backend\yudao-framework\yudao-spring-boot-starter-biz-data-permission\src\main\java\cn\iocoder\yudao\framework\datapermission\core\db\DataPermissionDatabaseInterceptor.java

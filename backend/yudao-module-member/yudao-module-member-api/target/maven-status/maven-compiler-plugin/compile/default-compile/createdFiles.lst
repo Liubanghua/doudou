@@ -1,0 +1,3 @@
+cn\iocoder\yudao\module\member\api\user\dto\UserRespDTO.class
+cn\iocoder\yudao\module\member\enums\ErrorCodeConstants.class
+cn\iocoder\yudao\module\member\api\user\MemberUserApi.class

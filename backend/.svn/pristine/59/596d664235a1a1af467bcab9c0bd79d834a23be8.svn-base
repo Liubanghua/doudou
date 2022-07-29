@@ -1,0 +1,28 @@
+package cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord;
+
+import lombok.Data;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/7/13
+ */
+@Data
+public class TempRecordPreviewRespVO {
+
+    private Long deptId;
+
+    private String campusGradeName;
+
+    private String campusClassName;
+
+    private Integer total;
+
+    private Integer fever;
+
+    private Integer abnormal;
+
+    private Integer normal;
+
+}

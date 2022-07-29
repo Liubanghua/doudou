@@ -1,0 +1,45 @@
+package cn.iocoder.yudao.module.campus.service;
+
+
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentCreateReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentPageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentUpdateDeptReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.StudentUpdateReqVO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentDO;
+import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.data.support.IsNewStrategy;
+
+import java.util.List;
+
+public interface StudentService extends IService<StudentDO> {
+
+    /**
+     * 获取学生分页列表
+     *
+     * @param reqVO
+     * @return
+     */
+    PageResult<StudentDO> getStudentPage(StudentPageReqVO reqVO);
+
+    /**
+     * 获取符合查询条件的学生 ID
+     *
+     * @param reqVO
+     * @return
+     */
+    List<Long> getStudentIdsByCondition(StudentPageReqVO reqVO);
+
+    List<StudentDO> getStudentsByIds(List<Long> ids);
+
+    Long createStudent(StudentCreateReqVO reqVO);
+
+    StudentDO selectById(Long id);
+
+    void deleteStudent(Long id);
+
+    void updateStudent(StudentUpdateReqVO reqVO);
+
+    void updateStudentsDept(StudentUpdateDeptReqVO reqVO);
+
+}

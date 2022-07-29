@@ -1,0 +1,24 @@
+.treeOne{
+	.one{
+		height: 60upx;
+		overflow: hidden;
+		&.active{
+			color: #5c70fe;
+			border-bottom: 4upx solid #5c70fe;
+		}
+		.jt{
+			width: 30upx;
+			height: 30upx;
+			float: left;
+			margin-top: 15upx;
+			margin-right: 20upx;
+		}
+		.label{
+			line-height: 60upx;
+			float: left;
+		}
+	}
+	.children{
+		padding-left: 50upx;
+	}
+}

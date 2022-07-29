@@ -1,0 +1,65 @@
+.treeSelect{
+	width: 100%;
+	height: 100vh;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	z-index: 101;
+	background-color: rgba(0,0,0,.3);
+	.box{
+		width: 700upx;
+		height: 80vh;
+		background-color: #FFF;
+		border-radius: 10upx;
+		position: absolute;
+		top: 10vh;
+		left: 25upx;
+		.title{
+			border-bottom: 2upx solid #eee;
+			height: 90upx;
+			line-height: 90upx;
+			padding-left: 20upx;
+			font-size: 32upx;
+			font-weight: 600;
+			.closeBut{
+				width: 90upx;
+				height: 90upx;
+				float: right;
+				.ico{
+					width: 30upx;
+					height: 30upx;
+					margin: 30upx;
+				}
+			}
+		}
+		.con{
+			width: 100%;
+			height: calc(100% - 190upx);
+			padding: 20upx;
+			box-sizing: border-box;
+			overflow-y: auto;
+		}
+		.but{
+			height: 100upx;
+			.but{
+				width: 120upx;
+				height: 60upx;
+				line-height: 60upx;
+				text-align: center;
+				border-radius: 10upx;
+				margin: 20upx;
+				float: right;
+				font-size: 26upx;
+				&.yes{
+					background-color: #1890FF;
+					color: #fff;
+				}
+				&.no{
+					background-color: #FFF;
+					border: 2upx solid #ccc;
+					color: #333;
+				}
+			}
+		}
+	}
+}

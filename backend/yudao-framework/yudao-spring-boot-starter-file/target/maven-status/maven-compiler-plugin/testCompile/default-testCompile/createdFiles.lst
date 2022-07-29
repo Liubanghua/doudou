@@ -1,0 +1,4 @@
+cn\iocoder\yudao\framework\file\core\client\sftp\SftpFileClientTest.class
+cn\iocoder\yudao\framework\file\core\client\ftp\FtpFileClientTest.class
+cn\iocoder\yudao\framework\file\core\client\s3\S3FileClientTest.class
+cn\iocoder\yudao\framework\file\core\client\local\LocalFileClientTest.class

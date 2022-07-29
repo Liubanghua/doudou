@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: cn.iocoder.yudao.framework.file.core.client.local.LocalFileClientTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0 s - in cn.iocoder.yudao.framework.file.core.client.local.LocalFileClientTest

@@ -1,0 +1,327 @@
+package cn.iocoder.yudao.module.campus.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.io.IoUtil;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
+import cn.iocoder.yudao.framework.mybatis.core.query.QueryWrapperX;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.*;
+import cn.iocoder.yudao.module.campus.convert.StudentConvert;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentDO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentHeightDO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.StudentWeightDO;
+import cn.iocoder.yudao.module.campus.dal.mysql.StudentHeightMapper;
+import cn.iocoder.yudao.module.campus.dal.mysql.StudentMapper;
+import cn.iocoder.yudao.module.campus.dal.mysql.StudentWeightMapper;
+import cn.iocoder.yudao.module.campus.service.StudentService;
+import cn.iocoder.yudao.module.campus.service.TempRecordService;
+import cn.iocoder.yudao.module.infra.api.file.FileApi;
+import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
+import cn.iocoder.yudao.module.system.service.dept.DeptService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.netty.util.internal.StringUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.io.InputStream;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.convertSet;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUser;
+import static cn.iocoder.yudao.module.campus.enums.ErrorCodeConstants.STUDENT_EXISTSED;
+import static cn.iocoder.yudao.module.campus.enums.ErrorCodeConstants.STUDENT_NOT_EXISTSED;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.DEPT_NOT_FOUND;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.USER_IMPORT_LIST_IS_EMPTY;
+
+/**
+ * @program: 智慧校园
+ * @description: 学生管理实现类
+ * @author: pengzhenlong
+ * @date: 2022/6/15
+ */
+@Service
+@Slf4j
+public class StudentServiceImpl extends ServiceImpl<StudentMapper, StudentDO> implements StudentService {
+
+    @Resource
+    private StudentMapper studentMapper;
+
+    @Resource
+    private TempRecordService tempRecordService;
+
+    @Resource
+    private DeptService deptService;
+
+    @Resource
+    private FileApi fileApi;
+
+    @Override
+    public PageResult<StudentDO> getStudentPage(StudentPageReqVO reqVO, Collection<Long> deptIds) {
+        return studentMapper.selectPage(reqVO, deptIds);
+    }
+
+    @Override
+    public PageResult<StudentRespVO> studentPage(StudentPageReqVO reqVO, Collection<Long> deptIds) {
+        QueryWrapperX queryWrapperX = new QueryWrapperX();
+        queryWrapperX.likeIfPresent("student.student_no", reqVO.getStudentNo())
+                .likeIfPresent("student.`name`", reqVO.getStudentName())
+                .eqIfPresent("student.sex", reqVO.getSex())
+                .inIfPresent("student.dept_id", deptIds);
+
+        int pageSize = reqVO.getPageSize();
+        int start = (reqVO.getPageNo() - 1) * pageSize;
+
+        List<StudentRespVO> results = studentMapper.selectRespVoPage(queryWrapperX, start, pageSize);
+        Long count = studentMapper.selectCount(queryWrapperX);
+        return new PageResult<>(results, count);
+    }
+
+    @Override
+    public List<StudentDO> getStudentList(StudentExportReqVO exportReqVO) {
+        return studentMapper.selectList(exportReqVO, getDeptCondition(exportReqVO.getDeptId()));
+    }
+
+    /**
+     * 获得部门条件：查询指定部门的子部门编号们，包括自身
+     *
+     * @param deptId 部门编号
+     * @return 部门编号集合
+     */
+    private Set<Long> getDeptCondition(Long deptId) {
+        if (deptId == null) {
+            return Collections.emptySet();
+        }
+        Set<Long> deptIds = convertSet(deptService.getDeptsByParentIdFromCache(deptId, true), DeptDO::getId);
+        deptIds.add(deptId); // 包括自身
+        return deptIds;
+    }
+
+    @Override
+    public List<Long> getStudentIdsByCondition(StudentPageReqVO reqVO) {
+        PageResult<StudentDO> result = this.getStudentPage(reqVO, getDeptCondition(reqVO.getDeptId()));
+        if (result != null && CollUtil.isNotEmpty(result.getList())) {
+            List<Long> studentIds = new ArrayList<>();
+            for (StudentDO studentDO : result.getList()) {
+                studentIds.add(studentDO.getId());
+            }
+            return studentIds;
+        }
+        return null;
+    }
+
+    @Override
+    public List<StudentDO> getStudentsByIds(List<Long> ids) {
+        return studentMapper.selectBatchIds(ids);
+    }
+
+    @Override
+    public Long createStudent(StudentCreateReqVO reqVO) {
+        checkStudentNoUnique(reqVO.getStudentNo());
+        // 校验部门处于开启状态
+        deptService.validDepts(CollectionUtils.singleton(reqVO.getDeptId()));
+
+        // 插入学生
+        StudentDO studentDO = StudentConvert.INSTANCE.convert(reqVO);
+        studentMapper.insert(studentDO);
+
+        return studentDO.getId();
+    }
+
+    private void checkStudentNoUnique(String studentNo) {
+        StudentDO student = studentMapper.selectByStudentNo(studentNo);
+        if (student != null) {
+            throw exception(STUDENT_EXISTSED);
+        }
+        return;
+    }
+
+    @Override
+    public StudentDO selectById(Long id) {
+        return studentMapper.selectById(id);
+    }
+
+    @Override
+    public void deleteStudent(Long id) {
+        // 校验学生是否存在
+        checkStudentExists(id);
+
+        // 删除关联信息
+        tempRecordService.deleteTempRecordsByStudentId(id);
+        studentMapper.deleteById(id);
+    }
+
+    @Override
+    public void updateStudent(StudentUpdateReqVO reqVO) {
+        checkStudentExists(reqVO.getId());
+        StudentDO student = StudentConvert.INSTANCE.convertUpdate(reqVO);
+        studentMapper.updateById(student);
+    }
+
+    @Override
+    public void updateStudentsDept(StudentUpdateDeptReqVO reqVO) {
+        List<Long> studentIds = reqVO.getStudentIds();
+        Long deptId = reqVO.getDeptId();
+        if (CollUtil.isEmpty(studentIds)) {
+            return;
+        }
+        checkDeptExists(deptId);
+
+        List<StudentDO> students = new ArrayList<>();
+        for (Long studentId : studentIds) {
+            StudentDO student = new StudentDO();
+            student.setId(studentId);
+            student.setDeptId(deptId);
+            students.add(student);
+        }
+
+        this.saveOrUpdateBatch(students);
+    }
+
+    /**
+     * 上传用户头像
+     */
+    @Override
+    public String updateStudentAvatar(InputStream avatarFile) throws Exception {
+        return fileApi.createFile(IoUtil.readBytes(avatarFile));
+    }
+
+    /**
+     * 学生信息导入
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 添加事务，异常则回滚所有导入
+    public StudentImportRespVO importStudent(List<StudentExcelVo> importStudents, Boolean isUpdateSupport) {
+        if (CollUtil.isEmpty(importStudents)) {
+            throw exception(USER_IMPORT_LIST_IS_EMPTY);
+        }
+        StudentImportRespVO respVO = StudentImportRespVO.builder().createStudentNames(new ArrayList<>())
+                .updateStudentNames(new ArrayList<>()).failureStudentNames(new LinkedHashMap<>()).build();
+        importStudents.forEach(importStudent -> {
+            //验证数据是否符合条件
+            if (StringUtil.isNullOrEmpty(importStudent.getName())) {
+                respVO.getFailureStudentNames().put("null", "学生姓名为空");
+                return;
+            }
+            if (StringUtil.isNullOrEmpty(importStudent.getStudentNo())) {
+                respVO.getFailureStudentNames().put(importStudent.getName(), "学号为空");
+                return;
+            }
+            if (StringUtil.isNullOrEmpty(importStudent.getCampusClassName()) || StringUtil.isNullOrEmpty(importStudent.getCampusGradeName())) {
+                respVO.getFailureStudentNames().put(importStudent.getName(), "班级或者年级为空");
+                return;
+            }
+            if (!StringUtil.isNullOrEmpty(importStudent.getIdCard())) {
+                // 身份证18位正则表达式
+                String idCardcheck18 = "^[1-9]\\d{5}(18|19|20)\\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\\d{3}[0-9Xx]$";
+                if (!importStudent.getIdCard().matches(idCardcheck18)) {
+                    respVO.getFailureStudentNames().put(importStudent.getName(), "身份证号不符合规范");
+                    return;
+                }
+            }
+            Long deptId = checkStudentDeptExistsByName(importStudent.getCampusGradeName(), importStudent.getCampusClassName());
+            if (deptId == -1L) {
+                respVO.getFailureStudentNames().put(importStudent.getName(), "该年级不存在");
+                return;
+            }
+            if (deptId == -2L) {
+                respVO.getFailureStudentNames().put(importStudent.getName(), "该班级不存在");
+                return;
+            }
+
+            // 判断如果不存在，在进行插入
+            StudentDO student = studentMapper.selectByStudentNo(importStudent.getStudentNo());
+            if (student == null) {
+                studentMapper.insert(StudentConvert.INSTANCE.convert(importStudent).setDeptId(deptId));
+                respVO.getCreateStudentNames().add(importStudent.getName());
+                return;
+            }
+
+            // 如果存在，判断是否允许更新
+            if (!isUpdateSupport) {
+                respVO.getFailureStudentNames().put(importStudent.getName(), "该学生已存在");
+                return;
+            }
+            student.setName(importStudent.getName());
+            student.setDeptId(deptId);
+            student.setIdCard(importStudent.getIdCard());
+            student.setSex(importStudent.getSex());
+            studentMapper.updateById(student);
+            respVO.getUpdateStudentNames().add(importStudent.getName());
+        });
+        return respVO;
+    }
+
+    private Long checkStudentDeptExistsByName(String gradeName, String className) {
+        Long deptId = -1L;
+        //获取当前登录用户所属部门
+        Long loginUserDeptId = getLoginUser().getDeptId();
+        List<DeptDO> gradeList = deptService.getDeptsByParentIdFromCache(loginUserDeptId, true);
+        List<DeptDO> classList = new ArrayList<DeptDO>();
+        for (DeptDO gradeDo : gradeList) {
+            if (gradeDo.getName().equals(gradeName)) {
+                deptId = -2L;
+                classList = deptService.getDeptsByParentIdFromCache(gradeDo.getId(), true);
+                for (DeptDO classDO : classList) {
+                    if (classDO.getName().equals(className)) {
+                        deptId = classDO.getId();
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        return deptId;
+    }
+
+    private void checkStudentExists(Long id) {
+        if (id == null) {
+            return;
+        }
+        StudentDO student = studentMapper.selectById(id);
+        if (student == null) {
+            throw exception(STUDENT_NOT_EXISTSED);
+        }
+    }
+
+    private void checkDeptExists(Long id) {
+        if (id == null) {
+            return;
+        }
+        DeptDO dept = deptService.getDept(id);
+        if (dept == null) {
+            throw exception(DEPT_NOT_FOUND);
+        }
+    }
+
+    @Override
+    public Map<Long, StudentDO> getStudentMapById(List<Long> studentIds) {
+        List<StudentDO> students = studentMapper.selectBatchIds(studentIds);
+        if (CollectionUtil.isNotEmpty(students)) {
+            return students.stream().collect(Collectors.toMap(StudentDO::getId, student -> student));
+        }
+        return null;
+    }
+
+    @Override
+    public Long uploadStudent(StudentCreateReqVO reqVO) {
+        StudentDO student = studentMapper.selectByStudentNo(reqVO.getStudentNo());
+        if (student == null) {
+            return this.createStudent(reqVO);
+        } else {
+            student.setAvatar(reqVO.getAvatar());
+            studentMapper.updateById(student);
+            return student.getId();
+        }
+    }
+
+
+    @Override
+    public StudentDO getStudentByStudentNo(String studentNo) {
+        return studentMapper.selectOne("student_no", studentNo);
+    }
+}

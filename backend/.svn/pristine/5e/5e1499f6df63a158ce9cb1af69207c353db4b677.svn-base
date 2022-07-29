@@ -1,0 +1,23 @@
+package cn.iocoder.yudao.module.campus.controller.admin.vo.material;
+
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/7/6
+ */
+@ApiModel("智慧校园 - 物资查询分页 Request VO")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class MaterialPageReqVO extends PageParam {
+
+    @ApiModelProperty(value = "学校ID")
+    private Long schoolId;
+
+}

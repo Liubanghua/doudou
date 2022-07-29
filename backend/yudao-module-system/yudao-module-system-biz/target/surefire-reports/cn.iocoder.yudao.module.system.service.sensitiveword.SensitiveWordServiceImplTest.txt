@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: cn.iocoder.yudao.module.system.service.sensitiveword.SensitiveWordServiceImplTest
+-------------------------------------------------------------------------------
+Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.716 s - in cn.iocoder.yudao.module.system.service.sensitiveword.SensitiveWordServiceImplTest

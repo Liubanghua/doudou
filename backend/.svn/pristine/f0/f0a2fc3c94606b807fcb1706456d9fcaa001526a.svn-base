@@ -1,0 +1,469 @@
+package cn.iocoder.yudao.module.campus.controller.admin;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
+import cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants;
+import cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil;
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
+import cn.iocoder.yudao.framework.excel.core.util.ExcelUtils;
+import cn.iocoder.yudao.framework.operatelog.core.annotations.OperateLog;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.covid.CovidClosePageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.covid.CovidCloseRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.inspect.InspectCreateReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.inspect.InspectPageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.inspect.InspectRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialCreateReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialPageReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialRespVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.material.MaterialUpdateReqVO;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.student.*;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.temprecord.*;
+import cn.iocoder.yudao.module.campus.convert.*;
+import cn.iocoder.yudao.module.campus.dal.dataobject.*;
+import cn.iocoder.yudao.module.campus.service.*;
+import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptCreateReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptRespVO;
+import cn.iocoder.yudao.module.system.convert.dept.DeptConvert;
+import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
+import cn.iocoder.yudao.module.system.service.dept.DeptService;
+import io.netty.util.internal.StringUtil;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.framework.common.pojo.CommonResult.error;
+import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.framework.operatelog.core.enums.OperateTypeEnum.EXPORT;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUser;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserDeptId;
+import static cn.iocoder.yudao.module.infra.enums.ErrorCodeConstants.FILE_IS_EMPTY;
+
+/**
+ * @program: 智慧校园
+ * @description: 智慧校园--学校视角请求入口
+ * @author: pengzhenlong
+ * @date: 2022/6/15
+ */
+@Api(tags = "智慧校园 - 学校视角")
+@RestController
+@RequestMapping("/smart-campus/school")
+@Validated
+public class SchoolController {
+
+    @Resource
+    private StudentService studentService;
+
+    @Resource
+    private TempRecordService tempRecordService;
+
+    @Resource
+    private DeptService deptService;
+
+    @Resource
+    private MaterialService materialService;
+
+    @Resource
+    private InspectService inspectService;
+
+    @Resource
+    private CovidCloseService covidCloseService;
+
+    @ApiOperation("获得测温预览")
+    @GetMapping("/temp-preview")
+    public CommonResult<TempChartRespVO> getTempPreview(@RequestParam("createTime") String createTime) throws Exception {
+        Date time = new SimpleDateFormat("yyyy-MM-dd").parse(createTime);
+        return success(tempRecordService.getTempChart(time));
+    }
+
+    @ApiOperation("获得密接人员分页列表")
+    @GetMapping("/close-preview/page")
+    public CommonResult<PageResult<CovidCloseRespVO>> closeContactsPage(@Validated CovidClosePageReqVO reqVO) {
+        PageResult<CovidCloseDO> pageResult = covidCloseService.getCovidClosePage(reqVO);
+        if (CollUtil.isEmpty(pageResult.getList())) {
+            return success(new PageResult<>(pageResult.getTotal()));
+        }
+
+        List<CovidCloseDO> covidCloseDOS = pageResult.getList();
+        List<Long> studentIds = CollectionUtils.convertList(covidCloseDOS, CovidCloseDO::getStudentId);
+        List<Long> studentDeptIds = CollectionUtils.convertList(covidCloseDOS, CovidCloseDO::getDeptId);
+
+        Map<Long, StudentDO> studentMap = studentService.getStudentMapById(studentIds);
+        Map<Long, DeptDO> studentDeptMap = deptService.getDeptMap(studentDeptIds);
+        List<Long> gradeDeptIds = studentDeptMap.values().stream().map(DeptDO::getParentId).collect(Collectors.toList());
+        Map<Long, DeptDO> gradeDeptMap = deptService.getDeptMap(gradeDeptIds);
+        gradeDeptMap.putAll(studentDeptMap);
+
+        List<CovidCloseRespVO> respVOS = CovidCloseConvert.INSTANCE.convert(covidCloseDOS, studentMap, gradeDeptMap);
+
+        return success(new PageResult<>(respVOS, pageResult.getTotal()));
+    }
+
+    @ApiOperation("获得检查记录分页列表")
+    @GetMapping("/check-record/page")
+    public CommonResult checkRecordsPage(@Valid InspectPageReqVO reqVO) {
+        PageResult<InspectDO> pageResult = inspectService.getInspectPage(reqVO);
+        if (CollUtil.isEmpty(pageResult.getList())) {
+            return success(new PageResult<>(pageResult.getTotal()));
+        }
+
+        List<InspectRespVO> respVOs = InspectConvert.INSTANCE.convert(pageResult.getList());
+        return success(new PageResult<>(respVOs, pageResult.getTotal()));
+    }
+
+    @ApiOperation("新增检查记录")
+    @PostMapping("/check-record/create")
+    public CommonResult<Long> createCheckRecord(@Valid @RequestBody InspectCreateReqVO reqVO) {
+        Long deptId = getLoginUserDeptId();
+        return success(inspectService.createInspect(deptId, reqVO));
+    }
+
+    @ApiOperation("年级预览列表")
+    @GetMapping("/grade-preview/page")
+    public CommonResult gradePreview(@Valid TempRecordPreviewReqVO reqVO) {
+        reqVO = getRequestVo(reqVO);
+
+        List<DeptDO> depts = new ArrayList<>();
+        //为空，展示所有年级
+        if (reqVO.getDeptId() == null) {
+            depts = deptService.getDeptsByParentIdFromCache(getLoginUserDeptId(), true);
+        } else {
+            depts = deptService.getDeptsByParentIdFromCache(reqVO.getDeptId(), true);
+            DeptDO deptDO = deptService.getDept(reqVO.getDeptId());
+            if (deptDO == null) {
+                return error(GlobalErrorCodeConstants.BAD_REQUEST.getCode(), "不存在该部门");
+            }
+            depts.add(deptDO);
+        }
+
+        List<Long> deptIds = depts.stream().map(DeptDO::getId).collect(Collectors.toList());
+        List<TempRecordPreviewRespVO> results = tempRecordService.getGradeTempRecordPreviewList(deptIds, reqVO);
+        if (CollUtil.isEmpty(results)) {
+            return success(null);
+        }
+
+        Map<Long, DeptDO> deptMap = depts.stream().collect(Collectors.toMap(DeptDO::getId, dept -> dept));
+        return success(TempRecordConvert.INSTANCE.convertGrade(results, deptMap));
+    }
+
+    @ApiOperation("班级预览列表")
+    @GetMapping("/class-preview/page")
+    public CommonResult classPreviewPage(@Valid TempRecordPreviewReqVO reqVO) {
+        reqVO = getRequestVo(reqVO);
+        List<DeptDO> depts = new ArrayList<>();
+        //为空，展示所有班级
+        if (reqVO.getDeptId() == null) {
+            depts = deptService.getDeptsByParentIdFromCache(getLoginUserDeptId(), true);
+        } else {
+            depts = deptService.getDeptsByParentIdFromCache(reqVO.getDeptId(), true);
+            DeptDO deptDO = deptService.getDept(reqVO.getDeptId());
+            if (deptDO == null) {
+                return error(GlobalErrorCodeConstants.BAD_REQUEST.getCode(), "不存在该部门");
+            }
+            depts.add(deptDO);
+            depts.add(deptService.getDept(deptDO.getParentId()));
+        }
+
+        List<Long> deptIds = depts.stream().map(DeptDO::getId).collect(Collectors.toList());
+        Map<Long, DeptDO> deptMap = depts.stream().collect(Collectors.toMap(DeptDO::getId, dept -> dept));
+
+        List<TempRecordPreviewRespVO> results = tempRecordService.getClassTempRecordPreviewList(deptIds, reqVO);
+        if (CollUtil.isEmpty(results)) {
+            return success(null);
+        }
+        return success(TempRecordConvert.INSTANCE.convertClass(results, deptMap));
+    }
+
+    private TempRecordPreviewReqVO getRequestVo(TempRecordPreviewReqVO reqVO) {
+        if (reqVO.getDate() == null) {
+            reqVO.setDate(new Date());
+        }
+        return reqVO;
+    }
+
+    @ApiOperation("学生预览分页列表")
+    @GetMapping("/student-preview/page")
+    public CommonResult<PageResult<StudentTempPreviewRespVO>> studentPreviewPage(@Valid StudentPageReqVO reqVO) {
+        PageResult<StudentDO> pageResult = studentService.getStudentPage(reqVO);
+        if (CollUtil.isEmpty(pageResult.getList())) {
+            return success(new PageResult<>(pageResult.getTotal()));
+        }
+
+        List<Long> studentIds = CollectionUtils.convertList(pageResult.getList(), StudentDO::getId);
+        List<TempRecordDO> tempRecords = tempRecordService.getTodayTempRecordsByStudentIdsAndDate(studentIds);
+        Map<Long, List<TempRecordDO>> studentTempRecordMap = new HashMap<>();
+        for (TempRecordDO tempRecord : tempRecords) {
+            Long studentId = tempRecord.getStudentId();
+            List<TempRecordDO> studentTempRecordList = studentTempRecordMap.get(studentId);
+            if (CollectionUtil.isEmpty(studentTempRecordList)) {
+                studentTempRecordList = new ArrayList<>();
+            }
+            studentTempRecordList.add(tempRecord);
+            studentTempRecordMap.put(tempRecord.getStudentId(), studentTempRecordList);
+        }
+
+        Collection<Long> classDeptIds = CollectionUtils.convertList(pageResult.getList(), StudentDO::getDeptId);
+        Map<Long, DeptDO> deptMap = deptService.getStudentDeptMapByIds(classDeptIds);
+
+        List<StudentTempPreviewRespVO> results = StudentConvert.INSTANCE.convert(pageResult.getList(), studentTempRecordMap, deptMap);
+        return success(new PageResult<>(results, pageResult.getTotal()));
+    }
+
+
+    @ApiOperation("新增班级")
+    @PostMapping("/class/create")
+    public CommonResult<Long> createClass(@Valid @RequestBody DeptCreateReqVO reqVO) {
+        Long deptId = deptService.createDept(reqVO);
+        return success(deptId);
+    }
+
+    @ApiOperation("删除班级")
+    @DeleteMapping("/class/delete")
+    public CommonResult<Boolean> deleteClass(@RequestParam("deptId") Long id) {
+        deptService.deleteDept(id);
+        return success(true);
+    }
+
+    @ApiOperation("获得学生分页列表")
+    @GetMapping("/student/page")
+    public CommonResult<PageResult<StudentRespVO>> getStudentsPage(@Valid StudentPageReqVO reqVO) {
+        PageResult<StudentDO> pageResult = studentService.getStudentPage(reqVO);
+        if (CollUtil.isEmpty(pageResult.getList())) {
+            return success(new PageResult<>(pageResult.getTotal()));
+        }
+
+        List<StudentRespVO> studentsList = StudentConvert.INSTANCE.convertDO2RespVO(pageResult.getList());
+        return success(new PageResult<>(studentsList, pageResult.getTotal()));
+    }
+
+    @ApiOperation("获得学生测温记录详情")
+    @GetMapping("/temp/get")
+    public CommonResult<StudentTempRecordRespVO> getStudentTempRecord(@RequestParam("id") Long id, @RequestParam("time") @DateTimeFormat(pattern = "yyyy-MM-dd") Date time) {
+        return success(tempRecordService.getTempRecordByStudentIdAndDate(id, time));
+    }
+
+    @ApiOperation("获得学生信息")
+    @GetMapping("/student/get")
+    public CommonResult<StudentRespVO> getStudent(@RequestParam("id") Long id) {
+        return success(StudentConvert.INSTANCE.convertDo(studentService.selectById(id)));
+    }
+
+    @ApiOperation("获得防疫物资分页列表")
+    @GetMapping("/material/page")
+    public CommonResult<PageResult<MaterialRespVO>> materialPage(@Validated MaterialPageReqVO reqVO) {
+        PageResult<MaterialDO> pageResult = materialService.getMaterialPage(reqVO);
+        List<MaterialRespVO> respVO = MaterialConvert.INSTANCE.convert(pageResult.getList());
+        return success(new PageResult<>(respVO, pageResult.getTotal()));
+    }
+
+    @ApiOperation("新增防疫物资")
+    @PostMapping("/material/create")
+    public CommonResult<Long> createMaterial(@Valid @RequestBody MaterialCreateReqVO reqVO) {
+        Long deptId = getLoginUserDeptId();
+        return success(materialService.createMaterial(deptId, reqVO));
+    }
+
+    @ApiOperation("更新防疫物资")
+    @PutMapping("/material/update")
+    public CommonResult<Boolean> updateMaterial(@Valid @RequestBody MaterialUpdateReqVO reqVO) {
+        materialService.updateMaterial(reqVO);
+        return success(true);
+    }
+
+    @ApiOperation("获取防疫物资变更记录")
+    @GetMapping("/material/get")
+    public CommonResult getMaterial(@RequestParam("id") Long id) {
+        return success("获取防疫物资变更记录 -- 待开发");
+    }
+
+
+    @ApiOperation("测温记录分页列表")
+    @GetMapping("/temp/page")
+    public CommonResult<PageResult<TempRecordRespVO>> getTempRecordsPage(@Validated TempRecordPageReqVO reqVO) {
+        //获取符合条件的测温记录
+        PageResult<TempRecordDO> pageResult = tempRecordService.getTempRecordPage(reqVO);
+        if (pageResult == null || CollUtil.isEmpty(pageResult.getList())) {
+            return success(new PageResult<>(0l));
+        }
+
+        //补充学生信息
+        List<Long> studentIds = CollectionUtils.convertList(pageResult.getList(), TempRecordDO::getStudentId);
+        List<StudentDO> students = studentService.getStudentsByIds(studentIds);
+        Map<Long, StudentDO> studentMap = CollectionUtils.convertMap(students, StudentDO::getId);
+
+        if (studentMap.size() == 0) {
+            return success(new PageResult<>(0l));
+        }
+
+        Collection<Long> classDeptIds = CollectionUtils.convertList(students, StudentDO::getDeptId);
+        Map<Long, DeptDO> deptMap = deptService.getStudentDeptMapByIds(classDeptIds);
+
+        if (CollUtil.isEmpty(deptMap)) {
+            return success(new PageResult<>(0l));
+        }
+
+        List<TempRecordRespVO> respVOS = new ArrayList<>(pageResult.getList().size());
+        pageResult.getList().forEach(tempRecord -> {
+            StudentDO student = studentMap.get(tempRecord.getStudentId());
+            if (student != null) {
+                Long studentDeptId = student.getDeptId();
+                TempRecordRespVO respVO = tempRecordService.convertByDO(tempRecord, student);
+                DeptDO classDept = deptMap.get(studentDeptId);
+                respVO.setCampusClassName(classDept.getName());
+                respVO.setCampusGradeName(deptMap.get(classDept.getParentId()).getName());
+                respVOS.add(respVO);
+            }
+        });
+
+        return success(new PageResult<>(respVOS, pageResult.getTotal()));
+    }
+
+    @PostMapping("/student/create")
+    @ApiOperation("新增学生")
+    public CommonResult<Long> createStudent(@Valid @RequestBody StudentCreateReqVO reqVO) {
+        Long id = studentService.createStudent(reqVO);
+        return success(id);
+    }
+
+    @PostMapping("/student/upload")
+    @ApiOperation("新增学生")
+    public CommonResult<Long> createStudentByUpload(@RequestParam("avatarFile") MultipartFile file) throws Exception {
+        if (file.isEmpty()) {
+            throw ServiceExceptionUtil.exception(FILE_IS_EMPTY);
+        }
+        String avatar = studentService.updateStudentAvatar(file.getInputStream());
+
+        String[] fileName = file.getOriginalFilename().substring(0, file.getOriginalFilename().lastIndexOf(".")).split("_");
+        StudentCreateReqVO reqVO = new StudentCreateReqVO();
+        reqVO.setName(fileName[0]);
+        reqVO.setStudentNo(fileName[1]);
+        reqVO.setDeptId(112l);
+        reqVO.setAvatar(avatar);
+
+        Long id = studentService.uploadStudent(reqVO);
+        return success(id);
+
+    }
+
+    @GetMapping("/dept/get")
+    @ApiOperation("获取子部门")
+    public CommonResult<List<DeptDO>> getDepts(@RequestParam("deptId") Long deptId) {
+        if (deptId == 0) {
+            deptId = getLoginUser().getDeptId();
+        }
+        List<DeptDO> deptList = deptService.getDeptsByParentIdFromCache(deptId, false);
+        return success(deptList);
+    }
+
+    @GetMapping("/dept/get-parentDept")
+    @ApiOperation("获取父部门")
+    public CommonResult<DeptRespVO> getParentDept(@RequestParam("deptId") Long deptId) {
+        return success(DeptConvert.INSTANCE.convert(deptService.getDept(deptId)));
+    }
+
+    @DeleteMapping("/student/delete/{ids}")
+    @ApiOperation("删除学生")
+    public CommonResult<Boolean> deleteStudent(@PathVariable Long[] ids) {
+        for (Long id : ids) {
+            studentService.deleteStudent(id);
+        }
+        return success(true);
+    }
+
+    @PutMapping("/student/update")
+    @ApiOperation("更新学生")
+    public CommonResult<Boolean> updateStudent(@Valid @RequestBody StudentUpdateReqVO reqVO) {
+        studentService.updateStudent(reqVO);
+        return success(true);
+    }
+
+    @PutMapping("/student/update-dept")
+    @ApiOperation("更新学生的部门信息")
+    public CommonResult<Boolean> updateStudentDept(@Valid @RequestBody StudentUpdateDeptReqVO reqVO) {
+        studentService.updateStudentsDept(reqVO);
+        return success(true);
+    }
+
+    @PutMapping("/student/update-avatar")
+    @ApiOperation("上传学生头像")
+    public CommonResult<String> updateStudentAvatar(@RequestParam("avatarFile") MultipartFile file) throws Exception {
+        if (file.isEmpty()) {
+            throw ServiceExceptionUtil.exception(FILE_IS_EMPTY);
+        }
+        String avatar = studentService.updateStudentAvatar(file.getInputStream());
+        return success(avatar);
+    }
+
+    @GetMapping("/student/export-excel")
+    @ApiOperation("导出学生 Excel")
+    @OperateLog(type = EXPORT)
+    public void exportTenantExcel(@Valid StudentExportReqVO exportReqVO,
+                                  HttpServletResponse response) throws IOException {
+        List<StudentDO> students = studentService.getStudentList(exportReqVO);
+        List<StudentExcelVo> datas = new ArrayList<StudentExcelVo>();
+        if (students != null && students.size() > 0) {
+            Collection<Long> classDeptIds = CollectionUtils.convertList(students, StudentDO::getDeptId);
+            List<DeptDO> classDepts = deptService.getDepts(classDeptIds);
+            Map<Long, DeptDO> classDeptMap = CollectionUtils.convertMap(classDepts, DeptDO::getId);
+
+            Collection<Long> gradeDeptIds = CollectionUtils.convertList(classDepts, DeptDO::getParentId);
+            List<DeptDO> gradeDepts = deptService.getDepts(gradeDeptIds);
+            Map<Long, DeptDO> gradeDeptMap = CollectionUtils.convertMap(gradeDepts, DeptDO::getId);
+
+            for (StudentDO studentDO : students) {
+                StudentExcelVo studentExcelVo = new StudentExcelVo();
+                studentExcelVo.setName(studentDO.getName());
+                studentExcelVo.setSex(studentDO.getSex());
+                studentExcelVo.setStudentNo(studentDO.getStudentNo());
+                studentExcelVo.setCampusClassName(classDeptMap.get(studentDO.getDeptId()).getName());
+                studentExcelVo.setCampusGradeName(gradeDeptMap.get(classDeptMap.get(studentDO.getDeptId()).getParentId()).getName());
+                if (!StringUtil.isNullOrEmpty(studentDO.getAvatar())) {
+                    studentExcelVo.setPhoto("已上传");
+                } else {
+                    studentExcelVo.setPhoto("未上传");
+                }
+                datas.add(studentExcelVo);
+            }
+        }
+        ExcelUtils.write(response, "学生.xls", "数据", StudentExcelVo.class, datas);
+    }
+
+    @GetMapping("/student/get-import-template")
+    @ApiOperation("获得导入学生模板")
+    public void importTemplate(HttpServletResponse response) throws IOException {
+        // 手动创建导出 demo
+        List<StudentExcelVo> list = Arrays
+                .asList(StudentExcelVo.builder().name("张三").sex(1).campusClassName("1班")
+                        .campusGradeName("一年级").studentNo("6704110302").idCard("420381199911057561").build());
+        // 输出
+        ExcelUtils.write(response, "学生导入模板.xls", "学生列表", StudentExcelVo.class, list);
+    }
+
+    @PostMapping("/student/import")
+    @ApiOperation("导入学生信息")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "file", value = "Excel 文件", required = true, dataTypeClass = MultipartFile.class),
+            @ApiImplicitParam(name = "updateSupport", value = "是否支持更新，默认为 false", example = "true", dataTypeClass = Boolean.class)
+    })
+    public CommonResult<StudentImportRespVO> importExcel(@RequestParam("file") MultipartFile file,
+                                                         @RequestParam(value = "updateSupport", required = false, defaultValue = "false") Boolean updateSupport) throws Exception {
+        List<StudentExcelVo> list = ExcelUtils.read(file, StudentExcelVo.class);
+        return success(studentService.importStudent(list, updateSupport));
+    }
+
+
+}

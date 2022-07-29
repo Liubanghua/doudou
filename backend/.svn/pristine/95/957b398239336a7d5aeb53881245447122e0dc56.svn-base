@@ -1,0 +1,28 @@
+package cn.iocoder.yudao.module.campus.dal.mysql;
+
+import cn.hutool.core.date.DateUtil;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.campus.controller.admin.vo.inspect.InspectPageReqVO;
+import cn.iocoder.yudao.module.campus.dal.dataobject.InspectDO;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * @program: 智慧校园
+ * @description:
+ * @author: pengzhenlong
+ * @date: 2022/7/6
+ */
+@Mapper
+public interface InspectMapper extends BaseMapperX<InspectDO> {
+
+    default PageResult<InspectDO> selectPage(InspectPageReqVO reqVO) {
+        LambdaQueryWrapperX<InspectDO> queryWrapper = new LambdaQueryWrapperX<>();
+        if(reqVO.getDate() != null){
+            queryWrapper.apply("date_format(create_time, '%Y-%m-%d') = '" + DateUtil.format(reqVO.getDate(), "yyyy-MM-dd") + "'");
+        }
+        queryWrapper.orderByDesc(InspectDO::getCreateTime);
+        return selectPage(reqVO, queryWrapper);
+    }
+}
